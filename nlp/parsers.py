@@ -12,7 +12,6 @@ understood as a mapping from strings to Python objects.
 
 """
 import re
-from functools import lru_cache
 
 from datetime import datetime, timedelta, timezone
 from worktime import Interval, dayend, daystart
@@ -158,7 +157,6 @@ _type2parser = {datetime: parse_datetime,
                 SoeGrouping: parse_grouping}
 
 
-@lru_cache(maxsize=5)
 def default_parser(type_):
     """Provides a default parser, especially for built-in types -- throws away
     all arguments from a parser call but the first one.
