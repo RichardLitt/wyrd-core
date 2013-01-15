@@ -12,7 +12,8 @@ understood as a mapping from strings to Python objects.
 
 """
 import re
-from functools import lru_cache
+## Uncommenting for 3.1 workability.
+#from functools import lru_cache
 
 from datetime import datetime, timedelta, timezone
 from worktime import Interval, dayend, daystart
