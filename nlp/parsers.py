@@ -11,11 +11,12 @@ This module implements parsers for entities used in the program. A parser is
 understood as a mapping from strings to Python objects.
 
 """
+from datetime import datetime, timedelta
+import pytz
 import re
 ## Uncommenting for 3.1 workability.
 #from functools import lru_cache
 
-from datetime import datetime, timedelta, timezone
 from worktime import Interval, dayend, daystart
 from grouping import SoeGrouping
 
@@ -52,7 +53,7 @@ def parse_datetime(dtstr, tz=None, exact=False, orig_val=None, **kwargs):
     keywords = [(re.compile(r"^\s*(?:the\s+)?end\s+of\s+(?:the\s+)?"
                             r"world(?:\s+(?:20|')12)?$"),
                  datetime(year=2012, month=12, day=21,
-                          hour=11, minute=11, tzinfo=timezone.utc))]
+                          hour=11, minute=11, tzinfo=pytz.utc))]
     lower = dtstr.lower().strip()
     for keyword, dt in keywords:
         if keyword.match(lower):
@@ -159,7 +160,6 @@ _type2parser = {datetime: parse_datetime,
                 SoeGrouping: parse_grouping}
 
 
-@lru_cache(maxsize=5)
 def default_parser(type_):
     """Provides a default parser, especially for built-in types -- throws away
     all arguments from a parser call but the first one.
