@@ -12,17 +12,18 @@ understood as a mapping from strings to Python objects.
 
 """
 from datetime import datetime, timedelta
-### What is pytz doing, again?
 import pytz
 import re
+<<<<<<< HEAD
 ## Uncommenting for 3.1 workability.
 #from functools import lru_cache
+=======
+>>>>>>> 6245bbed437d28f16782d1261cfbcae831573cf4
 
-### What do these two do?
 from worktime import Interval, dayend, daystart
 from grouping import SoeGrouping
 
-### What do the next three lines do?
+
 _dashes_rx = re.compile('-+')
 _float_subrx = r'(?:-\s*)?(?:\d+(?:\.\d+)?|\.\d+)'
 _timedelta_rx = re.compile((r'\W*?(?:({flt})\s*d(?:ays?\W+)?\W*?)?'
@@ -32,8 +33,7 @@ _timedelta_rx = re.compile((r'\W*?(?:({flt})\s*d(?:ays?\W+)?\W*?)?'
                            .format(flt=_float_subrx),
                            re.IGNORECASE)
 
-### So dtstr is a string? And the others are, options? What does **kwargs do
-### here? What's an example, then?
+
 def parse_datetime(dtstr, tz=None, exact=False, orig_val=None, **kwargs):
     """ Parses a string into a datetime object.
 
@@ -50,11 +50,8 @@ def parse_datetime(dtstr, tz=None, exact=False, orig_val=None, **kwargs):
                     else
 
     """
-    ### Meaning? 
     # TODO Crude NLP.
     exact_dt = None
-    ### I don't understand - would this be matching someone saying 'the end of
-    ### the world? It's quite difficult for me to parse this regex. 
     # Try to use some keywords.
     keywords = [(re.compile(r"^\s*(?:the\s+)?end\s+of\s+(?:the\s+)?"
                             r"world(?:\s+(?:20|')12)?$"),
@@ -63,8 +60,6 @@ def parse_datetime(dtstr, tz=None, exact=False, orig_val=None, **kwargs):
     lower = dtstr.lower().strip()
     for keyword, dt in keywords:
         if keyword.match(lower):
-            ### So, above - exact_dt = None - does all of the NLP, but
-            ### currently doesn't actually do any of it?
             exact_dt = dt
             break
 
@@ -87,8 +82,7 @@ def parse_datetime(dtstr, tz=None, exact=False, orig_val=None, **kwargs):
     # exact datetime.
     return exact_dt if exact else exact_dt.replace(microsecond=0)
 
-### What's the difference between a timedelta and a datetime object? Do we need
-### both?
+
 def parse_timedelta(timestr, **kwargs):
     """ Parses a string into a timedelta object.
 
@@ -127,8 +121,7 @@ def parse_timedelta(timestr, **kwargs):
             raise ValueError('Could not parse duration from "{arg}".'\
                              .format(arg=timestr))
 
-### Shouldn't the be packages for this? I don't know what Interval or Grouping
-### are. :/
+
 def parse_interval(ivalstr, tz=None, exact=False, **kwargs):
     """ Parses a string into an Interval object.
 

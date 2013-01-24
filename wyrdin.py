@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/Library/Frameworks/Python.framework/Versions/3.1/Resources/Python.app/Contents/MacOS/Python
 #-*- coding: utf-8 -*-
 # This code is PEP8-compliant. See http://www.python.org/dev/peps/pep-0008/.
 """
@@ -6,6 +6,9 @@
 Wyrd In: Time tracker and task manager
 CC-Share Alike 2012 © The Wyrd In team
 https://github.com/WyrdIn
+
+## Commented out as not being helpful. Testing. 
+!/usr/bin/python3
 
 """
 import argparse
