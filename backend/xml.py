@@ -389,7 +389,12 @@ class XmlBackend(object):
             tasks_e.append(cls._create_group_e(group))
         for slot in slots:
             slots_e.append(cls._create_slot_e(slot, default_tz))
-        outfile.write(etree.tostring(wyrdin_e,
-                                     encoding='UTF-8',
-                                     pretty_print=True,
-                                     xml_declaration=True))
+        try:
+            outfile.write(etree.tostring(wyrdin_e,
+                                        encoding='UTF-8',
+                                        pretty_print=True,
+                                        xml_declaration=True))
+        except TypeError:
+            outfile.write(etree.tostring(wyrdin_e,
+                                        encoding='UTF-8',
+                                        xml_declaration=True))
