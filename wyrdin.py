@@ -7,9 +7,6 @@ Wyrd In: Time tracker and task manager
 CC-Share Alike 2012 © The Wyrd In team
 https://github.com/WyrdIn
 
-## Commented out as not being helpful. Testing.
-!/usr/bin/python3
-
 """
 # Prepare the environment as needed.
 import sys
@@ -73,8 +70,7 @@ class Session(object):
             'LOG_FTYPE_OUT': FTYPE_XML,
             'TIME_FORMAT_USER': '%d %b %Y %H:%M:%S %Z',
             'TIME_FORMAT_REPR': '%Y-%m-%d %H:%M:%S',
-            'TIMEZONE': time.tzname[time.localtime().tm_isdst],
-            # The default timezone for newly specified time data.
+            'TIMEZONE': pytz.utc,
             'BACKUP_SUFFIX': '~',
         }
         # Initialise fields.
@@ -378,7 +374,7 @@ def _init_argparser(arger):
                                        help="To start working on a task.")
     arger_begin.set_defaults(func=begin)
     arger_begin.add_argument('-a', '--adjust',
-                             default=timedelta(),
+                             default=0,
                              metavar='TDELTA',
                              help="Adjust the beginning time by subtracting "
                                   "this much.",
@@ -391,7 +387,7 @@ def _init_argparser(arger):
         help="When you have finished/interrupted work on a task.")
     arger_end.set_defaults(func=end)
     arger_end.add_argument('-a', '--adjust',
-                           default=timedelta(),
+                           default=0,
                            metavar='MIN',
                            help="Adjust the end time by subtracting this "
                                 "much.",
@@ -644,7 +640,12 @@ if __name__ == "__main__":
     if DEBUG:
         from pprint import pprint
 
+    # Read arguments and configuration, initiate the user session.
+    arger = argparse.ArgumentParser()
+    _init_argparser(arger)
+    _process_args(arger)
     session = Session()
+    session.read_config(_cl_args)
     # A python gotcha -- the main module gets loaded twice, once as the main
     # module, and second time when imported by other modules. Therefore, any
     # globals that should be visible when imported have to be explicitly
@@ -654,13 +655,7 @@ if __name__ == "__main__":
     import wyrdin
     wyrdin.session = session
 
-    # Read arguments and configuration, initiate the user session.
-    arger = argparse.ArgumentParser()
-    _init_argparser(arger)
-    _process_args(arger)
-    session.read_config(_cl_args)
-
-    # Do imports that depend on a configured session.
+    # Do imports that depend on an existing session.
     from task import Task
     from worktime import WorkSlot
 
