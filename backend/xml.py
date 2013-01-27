@@ -44,7 +44,10 @@ from wyrdin import session
 
 # TODO: Inherit from IBackend (to be implemented).
 class XmlBackend(object):
-    parser = etree.XMLParser(remove_blank_text=True)
+    try:
+        parser = etree.XMLParser(remove_blank_text=True)
+    except TypeError:
+        parser = etree.XMLParser()
 
     @classmethod
     def _timedelta_repr(cls, td):
