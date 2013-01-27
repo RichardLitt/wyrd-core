@@ -64,13 +64,13 @@ class Session(object):
         self.config = {
             'PROJECTS_FNAME': 'projects.lst',
             'TASKS_FNAME_IN': 'tasks.xml',
-            'TASKS_FTYPE_IN': FTYPE_PICKLE,
+            'TASKS_FTYPE_IN': FTYPE_XML,
             'TASKS_FNAME_OUT': 'tasks.xml',
-            'TASKS_FTYPE_OUT': FTYPE_PICKLE,
+            'TASKS_FTYPE_OUT': FTYPE_XML,
             'LOG_FNAME_IN': 'tasks.xml',
-            'LOG_FTYPE_IN': FTYPE_PICKLE,
+            'LOG_FTYPE_IN': FTYPE_XML,
             'LOG_FNAME_OUT': 'tasks.xml',
-            'LOG_FTYPE_OUT': FTYPE_PICKLE,
+            'LOG_FTYPE_OUT': FTYPE_XML,
             'TIME_FORMAT_USER': '%d %b %Y %H:%M:%S %Z',
             'TIME_FORMAT_REPR': '%Y-%m-%d %H:%M:%S',
             'TIMEZONE': time.tzname[time.localtime().tm_isdst],
@@ -107,6 +107,9 @@ class Session(object):
                         self.config['TIMEZONE'] = pytz.timezone(cfg_value)
                         # TODO Catch UnknownTimeZoneError and raise
                         # a ConfigError.
+                    elif cfg_key in ('TASKS_FTYPE_IN', 'TASKS_FTYPE_OUT',
+                                     'LOG_FTYPE_IN', 'LOG_FTYPE_OUT'):
+                        self.config[cfg_key] = int(cfg_value)
                     else:
                         self.config[cfg_key] = cfg_value
 
