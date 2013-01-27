@@ -12,8 +12,6 @@ general State and Event.
 
 """
 
-from functools import total_ordering
-
 
 class Theme(object):
     """
@@ -30,7 +28,6 @@ class Theme(object):
         raise NotImplementedError("Theme needs to be implemented yet.")
 
 
-@total_ordering
 class Goal(object):
     """
     Goal is a high-level concept, although less abstract than Theme. It is
@@ -56,7 +53,6 @@ class Goal(object):
         return id(self)
 
 
-@total_ordering
 class Plan(object):
     """
     Plan is a recipe how to achieve a specified target state from a specified
@@ -91,7 +87,6 @@ class Plan(object):
         return id(self)
 
 
-@total_ordering
 class Task(object):
     """
     Task is an (potentially recurrent) event with an actor, generally one that
