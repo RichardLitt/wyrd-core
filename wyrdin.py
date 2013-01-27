@@ -11,6 +11,17 @@ https://github.com/WyrdIn
 !/usr/bin/python3
 
 """
+# Prepare the environment as needed.
+import sys
+import os.path
+# Make sure the libs provided with this package are visible.
+libs_dirname = os.path.join(os.path.dirname(__file__), 'libs', 'python')
+if libs_dirname not in sys.path:
+    # This way, libs provided are used only if not supplied in another way.
+    # If the provided version should override any other available versions on
+    # the system, `insert' instead of `append'.
+    sys.path.append(libs_dirname)
+
 import argparse
 import os.path
 import pytz
