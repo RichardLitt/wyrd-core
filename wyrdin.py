@@ -7,7 +7,7 @@ Wyrd In: Time tracker and task manager
 CC-Share Alike 2012 © The Wyrd In team
 https://github.com/WyrdIn
 
-## Commented out as not being helpful. Testing. 
+## Commented out as not being helpful. Testing.
 !/usr/bin/python3
 
 """
@@ -53,13 +53,13 @@ class Session(object):
         self.config = {
             'PROJECTS_FNAME': 'projects.lst',
             'TASKS_FNAME_IN': 'tasks.xml',
-            'TASKS_FTYPE_IN': FTYPE_XML,
+            'TASKS_FTYPE_IN': FTYPE_PICKLE,
             'TASKS_FNAME_OUT': 'tasks.xml',
-            'TASKS_FTYPE_OUT': FTYPE_XML,
+            'TASKS_FTYPE_OUT': FTYPE_PICKLE,
             'LOG_FNAME_IN': 'tasks.xml',
-            'LOG_FTYPE_IN': FTYPE_XML,
+            'LOG_FTYPE_IN': FTYPE_PICKLE,
             'LOG_FNAME_OUT': 'tasks.xml',
-            'LOG_FTYPE_OUT': FTYPE_XML,
+            'LOG_FTYPE_OUT': FTYPE_PICKLE,
             'TIME_FORMAT_USER': '%d %b %Y %H:%M:%S %Z',
             'TIME_FORMAT_REPR': '%Y-%m-%d %H:%M:%S',
             'TIMEZONE': time.tzname[time.localtime().tm_isdst],
