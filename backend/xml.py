@@ -2,6 +2,8 @@
 #-*- coding: utf-8 -*-
 # This code is mostly PEP8-compliant. See
 # http://www.python.org/dev/peps/pep-0008/.
+# pylint: disable=E126
+# pymode:lint_ignore=E126
 """
 
 Wyrd In: Time tracker and task manager
@@ -67,26 +69,27 @@ class XmlBackend(object):
         """
         if seen is None:
             seen = set()
+        seen.add(group)
 
         group_e = etree.Element("group",
                                 id=str(group.short_repr()),
-                                type=group.__class__.name)
-        for member in group.members:
+                                type=type(group).name)
+        for member in group.elems:
             if isinstance(member, Task):
                 task_e = etree.SubElement(group_e, "task")
-                task_e.set('id', member.id)
+                task_e.set('id', str(member.id))
             else:
                 assert isinstance(member, SoeGrouping)
-                assert member.__class__ != SoeGrouping
-                member_e = etree.SubElement(group_e, "group")
-                member_e.set(id=str(member.short_repr()))
-                member_e.set(type=member.__class__.name)
+                assert type(member) != SoeGrouping
                 # If this group was seen previously, do not go into it again.
                 # Else, add it to the set of seen groups and do recur.
                 if member not in seen:
-                    seen.add(member)
                     member_e = XmlBackend._create_group_e(member, seen=seen)
                     group_e.append(member_e)
+                else:
+                    member_e = etree.SubElement(group_e, "group")
+                    member_e.set('id', str(member.short_repr()))
+                    member_e.set('type', type(member).name)
         return group_e
 
     @classmethod
@@ -124,13 +127,26 @@ class XmlBackend(object):
     @classmethod
     def read_tasks(cls, infile):
         tasks = []
-        for _, elem in etree.iterparse(infile):
+        in_tasks = False
+        in_groups = False
+        for event, elem in etree.iterparse(infile, events=('start', 'end')):
             # Stop reading as soon as the </tasks> tag is encountered.
-            if elem.tag == "tasks":
-                break
+            if in_tasks:
+                if elem.tag == "groups":
+                    in_groups = not in_groups
+                elif elem.tag == "tasks":
+                    break
+            # Check whether we have reached the <tasks> element yet.
+            else:
+                if elem.tag == "tasks" and event == "start":
+                    in_tasks = True
+                continue
+            # Skip the subtree describing groupings.
+            if in_groups:
+                continue
             # Otherwise, parse each <task> element in accordance to the way it
             # was output.
-            elif elem.tag == "task":
+            if elem.tag == "task" and event == "end":
                 attrs = elem.attrib
                 # XXX When project of a task becomes something more than just
                 # a string, the code will probably break on the following line.
@@ -162,12 +178,12 @@ class XmlBackend(object):
     # TODO: It might be advantageous to switch to parsing the XML once into
     # a tree and reading all from the tree afterwards...
     @classmethod
-    def read_groups(cls, tasks, infile):
+    def read_groups(cls, infile, tasks):
         """Reads SoeGroupings from an XML file.
 
         Keyword arguments:
             - tasks: a mapping of known task IDs to the corresponding task
-              objects
+                     objects
             - infile: an open XML file to read the groupings from
 
         """
@@ -184,21 +200,20 @@ class XmlBackend(object):
             else:
                 if elem.tag == "groups" and event == "start":
                     in_groups = True
-                else:
-                    continue
-            # Parse each <group> element in accordance to the way it was
+                continue
+            # Parse each <group> element according to the way it was
             # output.
             if elem.tag == "group":
                 if event == "start":
                     # Open a new group.
                     grp_type = elem.get('type')
-                    cur_group = XmlBackend._typestr2cls(grp_type)()
-                    # Remember the group by its short_repr.
-                    cur_repr = cur_group.short_repr()
-                    if cur_repr in groups_map:
-                        cur_group = groups_map[cur_repr]
+                    grp_repr = elem.get('id')
+                    if grp_repr in groups_map:
+                        cur_group = groups_map[grp_repr]
                     else:
-                        groups_map[cur_repr] = cur_group
+                        cur_group = XmlBackend._typestr2cls[grp_type](
+                            short_repr=grp_repr)
+                        groups_map[grp_repr] = cur_group
                     # Put the group to its place.
                     if groups_branch:
                         groups_branch[-1].elems.append(cur_group)
@@ -208,11 +223,12 @@ class XmlBackend(object):
                     # Close the current group.
                     if len(groups_branch) == 1:
                         groups.append(groups_branch[0])
+                    groups_branch.pop()
             else:
                 assert elem.tag == "task"
                 if event == "start":
-                    task = tasks[elem.get('id')]
-                    groups_branch[-1].append(task)
+                    task = tasks[int(elem.get('id'))]
+                    groups_branch[-1].elems.append(task)
         return groups
 
     @classmethod
@@ -291,8 +307,9 @@ class XmlBackend(object):
         slots_e = etree.SubElement(wyrdin_e, 'workslots')
         for task in tasks:
             tasks_e.append(cls._create_task_e(task))
+        groups_e = etree.SubElement(tasks_e, 'groups')
         for group in groups:
-            tasks_e.append(cls._create_group_e(group))
+            groups_e.append(cls._create_group_e(group))
         for slot in slots:
             slots_e.append(cls._create_slot_e(slot))
         outfile.write(etree.tostring(wyrdin_e,

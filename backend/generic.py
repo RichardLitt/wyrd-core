@@ -23,7 +23,7 @@ class DBObject(object):
                   assigned so far
 
         """
-        cls = self.__class__  # the actual (most specific) class of self
+        cls = type(self)  # the actual (most specific) class of self
         if id is not None and id >= cls._next_id:
             self._id = id
         else:
@@ -41,4 +41,4 @@ class DBObject(object):
         """
         raise NotImplementedError(('{cls} does not implement the '
                                   "required method `short_repr'.").format(
-                                      cls=self.__class__.__name__))
+                                      cls=type(self).__name__))
