@@ -8,8 +8,18 @@ CC-Share Alike 2012 © The Wyrd In team
 https://github.com/WyrdIn
 
 """
-import argparse
+# Prepare the environment as needed.
+import sys
 import os.path
+# Make sure the libs provided with this package are visible.
+libs_dirname = os.path.join(os.path.dirname(__file__), 'libs', 'python')
+if libs_dirname not in sys.path:
+    # This way, libs provided are used only if not supplied in another way.
+    # If the provided version should override any other available versions on
+    # the system, `insert' instead of `append'.
+    sys.path.append(libs_dirname)
+
+import argparse
 import pytz
 from datetime import datetime, timedelta
 import time
@@ -93,6 +103,9 @@ class Session(object):
                         self.config['TIMEZONE'] = pytz.timezone(cfg_value)
                         # TODO Catch UnknownTimeZoneError and raise
                         # a ConfigError.
+                    elif cfg_key in ('TASKS_FTYPE_IN', 'TASKS_FTYPE_OUT',
+                                     'LOG_FTYPE_IN', 'LOG_FTYPE_OUT'):
+                        self.config[cfg_key] = int(cfg_value)
                     else:
                         self.config[cfg_key] = cfg_value
 
