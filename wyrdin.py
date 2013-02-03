@@ -71,6 +71,7 @@ class Session(object):
             'TIME_FORMAT_USER': '%d %b %Y %H:%M:%S %Z',
             'TIME_FORMAT_REPR': '%Y-%m-%d %H:%M:%S',
             'TIMEZONE': pytz.utc,
+            # The default timezone for newly specified time data.
             'BACKUP_SUFFIX': '~',
         }
         # Initialise fields.
@@ -237,6 +238,26 @@ class Session(object):
             raise NotImplementedError("Session.write_tasks() is not "
                                       "implemented for this type of files.")
 
+    def read_groups(self, infname=None, inftype=None):
+        # TODO: docstring
+        if infname is None:
+            infname = self.config['TASKS_FNAME_IN']
+            inftype = self.config['TASKS_FTYPE_IN']
+        # If no tasks have been written yet, don't load any.
+        if not os.path.exists(infname):
+            return
+        if inftype == FTYPE_XML:
+            from backend.xml import XmlBackend
+            # TODO The tasks_dict used just here is a provisionary solution.
+            tasks_dict = dict()
+            for task in self.tasks:
+                tasks_dict[task.id] = task
+            with open(infname, 'rb') as infile:
+                self.groups = XmlBackend.read_groups(infile, tasks_dict)
+        else:
+            raise NotImplementedError("Session.read_groups() is not "
+                                      "implemented for this type of files.")
+
     def read_log(self, infname=None, inftype=None):
         """Reads the log of how time was spent."""
         # TODO: Think of when this really has to be done, and when only
@@ -374,7 +395,7 @@ def _init_argparser(arger):
                                        help="To start working on a task.")
     arger_begin.set_defaults(func=begin)
     arger_begin.add_argument('-a', '--adjust',
-                             default=0,
+                             default=timedelta(),
                              metavar='TDELTA',
                              help="Adjust the beginning time by subtracting "
                                   "this much.",
@@ -387,7 +408,7 @@ def _init_argparser(arger):
         help="When you have finished/interrupted work on a task.")
     arger_end.set_defaults(func=end)
     arger_end.add_argument('-a', '--adjust',
-                           default=0,
+                           default=timedelta(),
                            metavar='MIN',
                            help="Adjust the end time by subtracting this "
                                 "much.",
@@ -640,12 +661,7 @@ if __name__ == "__main__":
     if DEBUG:
         from pprint import pprint
 
-    # Read arguments and configuration, initiate the user session.
-    arger = argparse.ArgumentParser()
-    _init_argparser(arger)
-    _process_args(arger)
     session = Session()
-    session.read_config(_cl_args)
     # A python gotcha -- the main module gets loaded twice, once as the main
     # module, and second time when imported by other modules. Therefore, any
     # globals that should be visible when imported have to be explicitly
@@ -655,13 +671,20 @@ if __name__ == "__main__":
     import wyrdin
     wyrdin.session = session
 
-    # Do imports that depend on an existing session.
+    # Read arguments and configuration, initiate the user session.
+    arger = argparse.ArgumentParser()
+    _init_argparser(arger)
+    _process_args(arger)
+    session.read_config(_cl_args)
+
+    # Do imports that depend on a configured session.
     from task import Task
     from worktime import WorkSlot
 
     # Read data.
     session.read_projects()
     session.read_tasks()
+    session.read_groups()
     session.read_log()
 
     from frontend.cli import Cli as frontend

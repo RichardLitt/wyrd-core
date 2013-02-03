@@ -12,13 +12,17 @@ disjunctions.
 
 """
 
+import re
+
 from backend.generic import DBObject
 
 
 class SoeGrouping(DBObject):
     """A structured grouping of SOEs -- states or events."""
+    _id_from_str_rx = re.compile(r'^.*?(\d+)\s*$')  # select the last chunk of
+                                                    # digits
 
-    def __init__(self, elems=None, id=None):
+    def __init__(self, elems=None, id=None, short_repr=None):
         """Creates a SOE grouping.
 
         Keyword arguments:
@@ -28,8 +32,12 @@ class SoeGrouping(DBObject):
                   required; if ID is supplied, it has to be non-negative
                   integer larger than any of IDs for this type of object
                   assigned so far
+            - short_repr: the return value of short_repr() called on an object
+                          of this class before serialisation
 
         """
+        if short_repr is not None:
+            id = int(self._id_from_str_rx.sub(r'\1', short_repr))
         super(SoeGrouping, self).__init__(id)
         if elems is not None:
             self.elems = elems

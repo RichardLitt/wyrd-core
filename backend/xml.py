@@ -1,6 +1,9 @@
 #!/usr/bin/python3
 #-*- coding: utf-8 -*-
-# This code is PEP8-compliant. See http://www.python.org/dev/peps/pep-0008/.
+# This code is mostly PEP8-compliant. See
+# http://www.python.org/dev/peps/pep-0008/.
+# pylint: disable=E126
+# pymode:lint_ignore=E126
 """
 
 Wyrd In: Time tracker and task manager
@@ -8,31 +11,7 @@ CC-Share Alike 2012 © The Wyrd In team
 https://github.com/WyrdIn
 
 """
-try:
-  from lxml import etree
-  print("running with lxml.etree")
-except ImportError:
-  try:
-    # Python 2.5
-    import xml.etree.cElementTree as etree
-    print("running with cElementTree on Python 2.5+")
-  except ImportError:
-    try:
-      # Python 2.5
-      import xml.etree.ElementTree as etree
-      print("running with ElementTree on Python 2.5+")
-    except ImportError:
-      try:
-        # normal cElementTree install
-        import cElementTree as etree
-        print("running with cElementTree")
-      except ImportError:
-        try:
-          # normal ElementTree install
-          import elementtree.ElementTree as etree
-          print("running with ElementTree")
-        except ImportError:
-          print("Failed to import ElementTree from any known place")
+from lxml import etree
 
 from datetime import datetime, timedelta
 import pytz
@@ -133,26 +112,27 @@ class XmlBackend(object):
         """
         if seen is None:
             seen = set()
+        seen.add(group)
 
         group_e = etree.Element("group",
                                 id=str(group.short_repr()),
-                                type=type(group).__name__)
-        for member in group.members:
+                                type=type(group).name)
+        for member in group.elems:
             if isinstance(member, Task):
                 task_e = etree.SubElement(group_e, "task")
-                task_e.set('id', member.id)
+                task_e.set('id', str(member.id))
             else:
                 assert isinstance(member, SoeGrouping)
                 assert type(member) != SoeGrouping
-                member_e = etree.SubElement(group_e, "group")
-                member_e.set(id=str(member.short_repr()))
-                member_e.set(type=type(member).__name__)
                 # If this group was seen previously, do not go into it again.
                 # Else, add it to the set of seen groups and do recur.
                 if member not in seen:
-                    seen.add(member)
                     member_e = XmlBackend._create_group_e(member, seen=seen)
                     group_e.append(member_e)
+                else:
+                    member_e = etree.SubElement(group_e, "group")
+                    member_e.set('id', str(member.short_repr()))
+                    member_e.set('type', type(member).name)
         return group_e
 
     @classmethod
@@ -191,19 +171,34 @@ class XmlBackend(object):
     def read_tasks(cls, infile):
         tasks = []
         default_tz = pytz.utc
+        in_tasks = False
+        in_groups = False
+        in_defaults = False
         for event, elem in etree.iterparse(infile, events=('start', 'end')):
             if event == 'start':
                 if elem.tag == 'defaults':
                     in_defaults = True
+                elif elem.tag == 'tasks':
+                    in_tasks = True
+                    continue
+                elif elem.tag == 'groups':
+                    in_groups = True
+
+            # if event == 'end':
             else:
-                # Stop reading as soon as the </tasks> tag is encountered.
-                if elem.tag == "tasks":
-                    break
-                elif elem.tag == 'defaults':
+                if elem.tag == 'defaults':
                     in_defaults = False
-                # Otherwise, parse each <task> element in accordance to the way
-                # it was output.
-                elif elem.tag == "task":
+                elif elem.tag == "groups":
+                    in_groups = False
+                # Stop reading as soon as the </tasks> tag is encountered.
+                elif elem.tag == "tasks":
+                    break
+                # Skip the subtree describing groupings.
+                if in_groups:
+                    continue
+                elif in_tasks and elem.tag == "task":
+                    # Otherwise, parse each <task> element in accordance to the
+                    # way it was output.
                     attrs = elem.attrib
                     # XXX When project of a task becomes something more than
                     # just a string, the code will probably break on the
@@ -223,7 +218,7 @@ class XmlBackend(object):
                         task.deadline = cls._read_time(attrs, 'deadline',
                                                        default_tz=default_tz)
                     tasks.append(task)
-                elif elem.tag == 'timezone' and in_defaults:
+                elif in_defaults and elem.tag == 'timezone':
                     default_tz = pytz.timezone(elem.text)
         return tasks
 
@@ -234,12 +229,12 @@ class XmlBackend(object):
     # TODO: It might be advantageous to switch to parsing the XML once into
     # a tree and reading all from the tree afterwards...
     @classmethod
-    def read_groups(cls, tasks, infile):
+    def read_groups(cls, infile, tasks):
         """Reads SoeGroupings from an XML file.
 
         Keyword arguments:
             - tasks: a mapping of known task IDs to the corresponding task
-              objects
+                     objects
             - infile: an open XML file to read the groupings from
 
         """
@@ -256,21 +251,20 @@ class XmlBackend(object):
             else:
                 if elem.tag == "groups" and event == "start":
                     in_groups = True
-                else:
-                    continue
-            # Parse each <group> element in accordance to the way it was
+                continue
+            # Parse each <group> element according to the way it was
             # output.
             if elem.tag == "group":
                 if event == "start":
                     # Open a new group.
                     grp_type = elem.get('type')
-                    cur_group = XmlBackend._typestr2cls(grp_type)()
-                    # Remember the group by its short_repr.
-                    cur_repr = cur_group.short_repr()
-                    if cur_repr in groups_map:
-                        cur_group = groups_map[cur_repr]
+                    grp_repr = elem.get('id')
+                    if grp_repr in groups_map:
+                        cur_group = groups_map[grp_repr]
                     else:
-                        groups_map[cur_repr] = cur_group
+                        cur_group = XmlBackend._typestr2cls[grp_type](
+                            short_repr=grp_repr)
+                        groups_map[grp_repr] = cur_group
                     # Put the group to its place.
                     if groups_branch:
                         groups_branch[-1].elems.append(cur_group)
@@ -280,11 +274,12 @@ class XmlBackend(object):
                     # Close the current group.
                     if len(groups_branch) == 1:
                         groups.append(groups_branch[0])
+                    groups_branch.pop()
             else:
                 assert elem.tag == "task"
                 if event == "start":
-                    task = tasks[elem.get('id')]
-                    groups_branch[-1].append(task)
+                    task = tasks[int(elem.get('id'))]
+                    groups_branch[-1].elems.append(task)
         return groups
 
     @classmethod
@@ -385,16 +380,17 @@ class XmlBackend(object):
         slots_e = etree.SubElement(wyrdin_e, 'workslots')
         for task in tasks:
             tasks_e.append(cls._create_task_e(task, default_tz=default_tz))
+        groups_e = etree.SubElement(tasks_e, 'groups')
         for group in groups:
-            tasks_e.append(cls._create_group_e(group))
+            groups_e.append(cls._create_group_e(group))
         for slot in slots:
             slots_e.append(cls._create_slot_e(slot, default_tz))
         try:
             outfile.write(etree.tostring(wyrdin_e,
-                                        encoding='UTF-8',
-                                        pretty_print=True,
-                                        xml_declaration=True))
+                                         encoding='UTF-8',
+                                         pretty_print=True,
+                                         xml_declaration=True))
         except TypeError:
             outfile.write(etree.tostring(wyrdin_e,
-                                        encoding='UTF-8',
-                                        xml_declaration=True))
+                                         encoding='UTF-8',
+                                         xml_declaration=True))
