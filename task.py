@@ -12,7 +12,12 @@ general State and Event.
 
 """
 
+from copy import deepcopy
+from datetime import datetime, timedelta
 from functools import total_ordering
+
+from backend.generic import DBObject
+from grouping import SoeGrouping
 
 
 class Theme(object):
@@ -91,10 +96,39 @@ class Plan(object):
         return id(self)
 
 
-@total_ordering
-class Task(object):
+class StateOrEvent(DBObject):
+    pass
+
+
+class State(StateOrEvent):
+    """This class represents a state of the world in the broadest sense."""
+
+    def short_repr(self):
+        return 's{id}'.format(id=self.id)
+
+
+class Event(StateOrEvent):
+    """This class represents a one-time event in the real world in the broadest
+    sense.
+
     """
-    Task is an (potentially recurrent) event with an actor, generally one that
+    slots = {'id': {'type': int, 'editable': False},
+             'name': {'type': str, 'editable': True},
+             'enables': {'type': list, 'editable': True},
+             }
+    """
+    - name: name of the event
+    - enables: a grouping of soes this event enables when finished
+    """
+
+    def short_repr(self):
+        return 'e{id}'.format(id=self.id)
+
+
+@total_ordering
+class Task(Event):
+    """
+    Task is a (potentially recurrent) event with an actor, generally one that
     is desired by the user. Every task has the actor specified, be it the local
     user or someone else, even a generic `someone'. Tasks generally also have
     deadlines and belong to a plan, even if the plan should consist of a single
@@ -107,19 +141,49 @@ class Task(object):
     leap years.''
 
     """
-    slots = ('name', 'project', 'done', 'time', 'deadline')
+    # TODO
+    #   - make prerequisites structured (a Boolex -- a boolean expression,
+    #     built from conjunctions and disjunctions of soes (StateOrEvents))
+    slots = deepcopy(Event.slots)
+    slots.update({'project': {'type': str, 'editable': True},
+                  'done': {'type': bool, 'editable': True},
+                  'time': {'type': timedelta, 'editable': True},
+                  'deadline': {'type': datetime, 'editable': True},
+                  'prerequisites': {'type': SoeGrouping, 'editable': True},
+                  })
+    """
+    - project: name of the project (to be changed to a reference to the related
+               project object in future)
+    - done: has the task been done yet?
+    - time: estimated time
+    - deadline: date of the deadline (to be changed to a reference to the
+                related Deadline object in future)
+    - prerequisites: a list of prerequisites for this task
+    """
+    def __init__(self, name, project, id=None):
+        """Creates a new task.
 
-    def __init__(self, name, project):
+        Keyword arguments:
+            - name: name of the task
+            - project: name of the project (can be "" to mean the task does not
+                       belong to any defined project)
+            - id: an ID (a number) of the task, if a specific one is required;
+                  if ID is supplied, it has to be non-negative integer larger
+                  than any of task IDs assigned so far
+
+        """
+        super(Task, self).__init__(id)
         self.name = name
         if project:
             self.project = project
         # Empty-string projects are treated as no project.
         else:
             self.project = None
-        self.done = False
+        self._done = False
 
     def __eq__(self, other):
-        return self.name == other.name and self.project == other.project
+        return (isinstance(other, Task) and
+                self.name == other.name and self.project == other.project)
 
     def __lt__(self, other):
         return str(self) < str(other)
@@ -128,33 +192,25 @@ class Task(object):
         return id(self)
 
     def __str__(self):
-        return "{done} {name} ({proj})".format(
-            name=self.name, proj=self.project,
-            done=("DONE" if
-                  ('done' in self.__dict__ and self.done)
-                  else "    "))
+        if self.project:
+            return "{done} {name} ({proj})".format(
+                name=self.name, proj=self.project,
+                done=("DONE" if self.done else "    "))
+        else:
+            return "{done} {name}".format(
+                name=self.name,
+                done=("DONE" if self.done else "    "))
 
     def __repr__(self):
-        return "{done} {name} ({proj})".format(
-            name=self.name, proj=self.project,
-            done=("DONE" if self.done else "    "))
+        return str(self)
 
+    def short_repr(self):
+        return 't{id}'.format(id=self.id)
 
-class State(object):
-    """
-    This class represents a state of the world in the broadest sense.
-    """
+    @property
+    def done(self):
+        return ('_done' in self.__dict__ and self._done)
 
-    def __init__(self):
-        raise NotImplementedError("State needs to be implemented yet.")
-
-
-class Event(object):
-    """
-    This class represents a one-time event in the real world in the broadest
-    sense.
-
-    """
-
-    def __init__(self):
-        raise NotImplementedError("Event needs to be implemented yet.")
+    @done.setter
+    def done(self, newval):
+        self._done = newval

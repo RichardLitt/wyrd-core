@@ -59,7 +59,7 @@ class Session(object):
             'LOG_FTYPE_OUT': FTYPE_XML,
             'TIME_FORMAT_USER': '%d %b %Y %H:%M:%S %Z',
             'TIME_FORMAT_REPR': '%Y-%m-%d %H:%M:%S',
-            'TIMEZONE': time.tzname[time.localtime().tm_isdst],
+            'TIMEZONE': pytz.utc,
             # The default timezone for newly specified time data.
             'BACKUP_SUFFIX': '~',
         }
