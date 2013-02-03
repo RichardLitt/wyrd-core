@@ -11,18 +11,22 @@ This module implements parsers for entities used in the program. A parser is
 understood as a mapping from strings to Python objects.
 
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 ### What is pytz doing, again?
-import pytz
+### pytz provides timezone definitions. However, since only UTC is needed here,
+### we can leave it out.
+# import pytz
 import re
-## Uncommenting for 3.1 workability.
-#from functools import lru_cache
 
 ### What do these two do?
+### These are imports of objects from our other modules, which we want to parse
+### from the text.
 from worktime import Interval, dayend, daystart
 from grouping import SoeGrouping
 
 ### What do the next three lines do?
+### They define regexes for a sequence of dashes (to tell an interval), a float
+### number, and a timedelta specification.
 _dashes_rx = re.compile('-+')
 _float_subrx = r'(?:-\s*)?(?:\d+(?:\.\d+)?|\.\d+)'
 _timedelta_rx = re.compile((r'\W*?(?:({flt})\s*d(?:ays?\W+)?\W*?)?'
@@ -34,6 +38,12 @@ _timedelta_rx = re.compile((r'\W*?(?:({flt})\s*d(?:ays?\W+)?\W*?)?'
 
 ### So dtstr is a string? And the others are, options? What does **kwargs do
 ### here? What's an example, then?
+### Yes, all methods here have a string as an argument, and here it is `dtstr'.
+### For the other arguments, see the docstring, please. kwargs are there to
+### comply with a generic signature of parser methods. We want to have the same
+### signature for parser methods for we provide the `get_parser' method, and its
+### caller will not know what specific signature should there be for the
+### particular type.
 def parse_datetime(dtstr, tz=None, exact=False, orig_val=None, **kwargs):
     """ Parses a string into a datetime object.
 
@@ -50,21 +60,26 @@ def parse_datetime(dtstr, tz=None, exact=False, orig_val=None, **kwargs):
                     else
 
     """
-    ### Meaning? 
+    ### Meaning?
+    ### Originally, I wrote just a keyword -> value mapping. So I added this
+    ### comment not to forget to _actually_ implement the method.
     # TODO Crude NLP.
     exact_dt = None
     ### I don't understand - would this be matching someone saying 'the end of
-    ### the world? It's quite difficult for me to parse this regex. 
+    ### the world? It's quite difficult for me to parse this regex.
+    ### Exactly ;) It is an example how keywords could look like.
     # Try to use some keywords.
     keywords = [(re.compile(r"^\s*(?:the\s+)?end\s+of\s+(?:the\s+)?"
                             r"world(?:\s+(?:20|')12)?$"),
                  datetime(year=2012, month=12, day=21,
-                          hour=11, minute=11, tzinfo=pytz.utc))]
+                          hour=11, minute=11, tzinfo=timezone.utc))]
     lower = dtstr.lower().strip()
     for keyword, dt in keywords:
         if keyword.match(lower):
             ### So, above - exact_dt = None - does all of the NLP, but
             ### currently doesn't actually do any of it?
+            ### To some extent. Now, something moderately sophisticated (regex
+            ### matching) happens below in the call `parse_timedelta(dtstr)'.
             exact_dt = dt
             break
 
@@ -89,6 +104,8 @@ def parse_datetime(dtstr, tz=None, exact=False, orig_val=None, **kwargs):
 
 ### What's the difference between a timedelta and a datetime object? Do we need
 ### both?
+### Sure we do. `timedelta' is time difference, `datetime' is a time point
+### specified by its date and time. Please, look in the documentation.
 def parse_timedelta(timestr, **kwargs):
     """ Parses a string into a timedelta object.
 
@@ -129,6 +146,9 @@ def parse_timedelta(timestr, **kwargs):
 
 ### Shouldn't the be packages for this? I don't know what Interval or Grouping
 ### are. :/
+### There is one. wyrdin. Look for "modules" in Python documentation, read the
+### imports close to the beginning of this file again. Interval and Grouping
+### are then documented in their defining modules.
 def parse_interval(ivalstr, tz=None, exact=False, **kwargs):
     """ Parses a string into an Interval object.
 
