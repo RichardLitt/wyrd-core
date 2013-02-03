@@ -20,7 +20,6 @@ if libs_dirname not in sys.path:
     sys.path.append(libs_dirname)
 
 import argparse
-import os.path
 import pytz
 from datetime import datetime, timedelta
 import time

@@ -12,7 +12,6 @@ https://github.com/WyrdIn
 
 """
 from lxml import etree
-
 from datetime import datetime, timedelta
 import pytz
 
@@ -23,10 +22,7 @@ from wyrdin import session
 
 # TODO: Inherit from IBackend (to be implemented).
 class XmlBackend(object):
-    try:
-        parser = etree.XMLParser(remove_blank_text=True)
-    except TypeError:
-        parser = etree.XMLParser()
+    parser = etree.XMLParser(remove_blank_text=True)
 
     @classmethod
     def _timedelta_repr(cls, td):
@@ -385,12 +381,7 @@ class XmlBackend(object):
             groups_e.append(cls._create_group_e(group))
         for slot in slots:
             slots_e.append(cls._create_slot_e(slot, default_tz))
-        try:
-            outfile.write(etree.tostring(wyrdin_e,
-                                         encoding='UTF-8',
-                                         pretty_print=True,
-                                         xml_declaration=True))
-        except TypeError:
-            outfile.write(etree.tostring(wyrdin_e,
-                                         encoding='UTF-8',
-                                         xml_declaration=True))
+        outfile.write(etree.tostring(wyrdin_e,
+                                     encoding='UTF-8',
+                                     pretty_print=True,
+                                     xml_declaration=True))
