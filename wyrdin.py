@@ -24,8 +24,7 @@ import pytz
 from datetime import datetime, timedelta
 import time
 
-from nlp.parsers import parse_timedelta, parse_interval
-from util import format_timedelta, group_by, open_backed_up
+from utils.various import format_timedelta, group_by, open_backed_up
 
 
 # TODO Public fields and methods.
@@ -40,6 +39,10 @@ FTYPE_XML = 2
 session = None
 DEBUG = False
 # DEBUG = True
+
+if DEBUG:
+    from utils import debugging
+    debugging.pdbonerror()
 
 
 class ClArgs():
@@ -93,6 +96,8 @@ class Session(object):
         # site-specific). Look also in the command line arguments (_cl_args).
         cfg_fname = "wyrdin.cfg"
         if os.path.exists(cfg_fname):
+            if DEBUG:
+                print("Reading the config file...")
             with open(cfg_fname, encoding="UTF-8") as cfg_file:
                 for line in cfg_file:
                     cfg_key, cfg_value = map(str.strip,
@@ -108,6 +113,9 @@ class Session(object):
                         self.config[cfg_key] = int(cfg_value)
                     else:
                         self.config[cfg_key] = cfg_value
+                        if DEBUG:
+                            print('self.config[{key}] = {val}'.format(
+                                key=cfg_key, val=cfg_value))
 
     def read_projects(self, infname=None):
         """
@@ -429,16 +437,13 @@ def _init_argparser(arger):
                                         help="Prints out the current status "\
                                              "info.")
     arger_status.set_defaults(func=status)
-    parse_tz_interval = lambda intstr: parse_interval(
-        intstr,
-        tz=session.config['TIMEZONE'])
     arger_status.add_argument('-t', '--time',
-                              type=parse_tz_interval,
                               action='append',
                               help="Filter work slots by time.")
     arger_status.add_argument('-a', '--all',
                               action='store_true',
                               help="Include also closed slots.")
+    # TODO Add an argument determining the sort order.
 
     # projects (renamed from topics)
     arger_projects = subargers.add_parser('projects',
@@ -497,6 +502,16 @@ def _process_args(arger):
     """
     arger.parse_args(namespace=_cl_args)
     _cl_args.arger = arger
+
+
+def _process_args_after_config(arger):
+    """Finishes processing the command line arguments after the config file has
+    been read.
+
+    """
+    if _cl_args.time:
+        _cl_args.time = [parse_interval(intstr, tz=session.config['TIMEZONE'])
+                         for intstr in _cl_args.time]
 
 
 # Subcommand functions.
@@ -560,11 +575,11 @@ def status(args):
     # Transform selection criteria into test functions.
     if args.time:
         filter_time = lambda slot: \
-            all(map(lambda invl: slot.intersects(invl), args.time))
+            all(slot.intersects(invl) for invl in args.time)
     else:
         filter_time = lambda _: True
     if not args.all:
-        filter_open = lambda slot: slot.iscurrent()
+        filter_open = lambda slot: slot.iscurrent(session.config['TIMEZONE'])
     else:
         filter_open = lambda _: True
     # Select work slots matching the selection criteria..
@@ -579,23 +594,60 @@ def status(args):
         print("You have been working on the following tasks:")
         now = datetime.now(session.config['TIMEZONE'])
         task2slot = group_by(slots, "task", single_attr=True)
-        for task in task2slot:
-            task_slots = task2slot[task]
+        # Sort the tasks (somehow).
+        tasks_and_slots = list()
+        for task, task_slots in task2slot.items():
+            if len(task_slots) > 1:
+                task_slots.sort(key=lambda slot: slot.start)
+            tasks_and_slots.append((task, task_slots))
+        tasks_and_slots.sort(key=lambda tup: tup[1][0].start)
+
+        # Print the tasks.
+        task_totals = dict()
+        for task, task_slots in tasks_and_slots:
             # Expected case: only working once on the task in parallel:
             if len(task_slots) == 1:
                 end = task_slots[0].end or now
-                time_spent = format_timedelta(end - task_slots[0].start)
+                start = task_slots[0].start
+                time_spent = end + end.dst() - start - start.dst()
+                task_totals[task] = time_spent
+                start_str = start.strftime(
+                    session.config['TIME_FORMAT_USER'])
+                end_str = end.strftime(
+                    session.config['TIME_FORMAT_USER'])
+                time_spent_str = "({})".format(format_timedelta(time_spent))
                 try:
-                    print("\t{time: >18}: {task}".format(task=task.name,
-                                                         time=time_spent))
+                    print("\t{start: >13} --{end: >13} {time: >10}: {task}"
+                          .format(start=start_str, end=end_str, task=task.name,
+                                  time=time_spent_str))
                 except:
                     continue
             else:
+                task_total = timedelta()
                 for slot in task_slots:
                     end = slot.end or now
-                    time_spent = format_timedelta(end - slot.start)
-                    print("M\t{time: >18}: {task}".format(task=task.name,
-                                                          time=time_spent))
+                    time_spent = (end + end.dst()
+                                  - slot.start - slot.start.dst())
+                    task_total += time_spent
+                    start_str = slot.start.strftime(
+                        session.config['TIME_FORMAT_USER'])
+                    end_str = end.strftime(
+                        session.config['TIME_FORMAT_USER'])
+                    time_spent_str = "({})".format(
+                        format_timedelta(time_spent))
+                    print("\t{start: >13} --{end: >13} {time: >10}: {task}"
+                          .format(start=start_str, end=end_str, task=task.name,
+                                  time=time_spent_str))
+                task_totals[task] = task_total
+
+        # Print task totals.
+        if any(len(slots) > 1 for slots in task2slot.values()):
+            task_totals_sd = sorted(task_totals.items(),
+                                    key=lambda tup: -tup[1])
+            print("\nTask totals:")
+            for task, task_total in task_totals_sd:
+                print("\t{time: >18}: {task}".format(
+                    task=task.name, time=format_timedelta(task_total)))
     return 0
 
 
@@ -657,6 +709,9 @@ def remove_task(args):
 
 # The main program loop.
 if __name__ == "__main__":
+    # Important imports.
+    from nlp.parsers import parse_timedelta, parse_interval
+
     if DEBUG:
         from pprint import pprint
 
@@ -675,6 +730,7 @@ if __name__ == "__main__":
     _init_argparser(arger)
     _process_args(arger)
     session.read_config(_cl_args)
+    _process_args_after_config(arger)
 
     # Do imports that depend on a configured session.
     from task import Task

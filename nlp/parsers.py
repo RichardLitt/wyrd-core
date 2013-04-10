@@ -18,11 +18,10 @@ from datetime import datetime, timedelta, timezone
 # import pytz
 import re
 
-### What do these two do?
-### These are imports of objects from our other modules, which we want to parse
-### from the text.
-from worktime import Interval, dayend, daystart
+
 from grouping import SoeGrouping
+from worktime import Interval, dayend, daystart
+import wyrdin
 
 ### What do the next three lines do?
 ### They define regexes for a sequence of dashes (to tell an interval), a float
@@ -83,11 +82,25 @@ def parse_datetime(dtstr, tz=None, exact=False, orig_val=None, **kwargs):
             exact_dt = dt
             break
 
-    # If keywords did not fire, interpret the string as a timedelta and add to
-    # datetime.now().
+    # If keywords did not fire, try to interpret the string as a full datetime
+    # specification.
+    if exact_dt is None:
+        try:
+            exact_dt = datetime.strptime(
+                dtstr, wyrdin.session.config['TIME_FORMAT_REPR'])
+        except ValueError:
+            pass
+    if exact_dt is None:
+        try:
+            exact_dt = datetime.strptime(
+                dtstr, wyrdin.session.config['TIME_FORMAT_USER'])
+        except ValueError:
+            pass
+
+    # Try interpret the string as a timedelta and add to # datetime.now().
     if exact_dt is None:
         if tz is None:
-            tz = session.config['TIMEZONE']
+            tz = wyrdin.session.config['TIMEZONE']
         try:
             exact_dt = datetime.now(tz) + parse_timedelta(dtstr)
         except ValueError:
@@ -95,9 +108,11 @@ def parse_datetime(dtstr, tz=None, exact=False, orig_val=None, **kwargs):
                              .format(arg=dtstr))
 
     # Try to supply the timezone from the original value.
-    if (exact_dt.tzinfo is None and orig_val is not None
-            and orig_val.tzinfo is not None):
-        exact_dt = exact_dt.replace(tzinfo=orig_val.tzinfo)
+    if exact_dt.tzinfo is None:
+        if tz is not None:
+            exact_dt = exact_dt.replace(tzinfo=tz)
+        elif (orig_val is not None and orig_val.tzinfo is not None):
+            exact_dt = exact_dt.replace(tzinfo=orig_val.tzinfo)
     # Round out microseconds (that's part of NLP) unless asked to return the
     # exact datetime.
     return exact_dt if exact else exact_dt.replace(microsecond=0)
@@ -164,13 +179,18 @@ def parse_interval(ivalstr, tz=None, exact=False, **kwargs):
     now = datetime.now(tz)
     # Try to use some keywords.
     keywords = {'today': (daystart(now, tz), dayend(now, tz))}
-    ivalstr = ivalstr.strip()
-    if ivalstr.lower() in keywords:
-        start, end = keywords[ivalstr.lower()]
+    ivalstr = ivalstr.strip().lower()
+    if ivalstr in keywords:
+        start, end = keywords[ivalstr]
         return Interval(start, end)
 
+    # Match some more patterns.
+    if ivalstr.startswith('since'):
+        start_str = ivalstr[5:].strip()
+        return Interval(parse_datetime(start_str, tz=tz, exact=exact), now)
+
     # Parse the interval in the form A--B.
-    start, end = _dashes_rx.split(ivalstr.strip(), 2)
+    start, end = _dashes_rx.split(ivalstr, 2)
     start = parse_datetime(start, tz=tz, exact=exact) if start else None
     end = parse_datetime(end, tz=tz, exact=exact) if end else None
     return Interval(start, end)
