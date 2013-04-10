@@ -73,7 +73,7 @@ class XmlBackend(object):
             # FIXME: If dt.tzinfo == default_tz, do nothing. (But default_tz
             # has to be handled yet.)
             if dt.tzinfo and (default_tz is None or dt.tzinfo != default_tz):
-                elem.set('{}_tz'.format(name), dt.tzname())
+                elem.set('{}_tz'.format(name), dt.tzinfo.zone or dt.tzname())
 
     @classmethod
     def _create_task_e(cls, task, default_tz=None):

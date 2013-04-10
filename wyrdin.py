@@ -347,8 +347,7 @@ class Session(object):
                 and tasks_fname == log_fname):
             from backend.xml import XmlBackend
             # TODO: Use the context manager at other places too.
-            with open_backed_up(tasks_fname,
-                                'wb',
+            with open_backed_up(tasks_fname, 'wb',
                                 suffix=self.config['BACKUP_SUFFIX']) \
                     as outfile:
                 XmlBackend.write_all(self.tasks, self.groups, self.wslots,
@@ -371,7 +370,7 @@ class Session(object):
         self.projects.remove(project)
 
     def get_task(self, task_id):
-        return filter(lambda task: task.id == task_id, self.tasks).__next__()
+        return next(filter(lambda task: task.id == task_id, self.tasks))
 
     def remove_task(self, task):
         slots = filter(lambda slot: slot.task == task, self.wslots)
@@ -509,7 +508,7 @@ def _process_args_after_config(arger):
     been read.
 
     """
-    if _cl_args.time:
+    if hasattr(_cl_args, 'time') and _cl_args.time:
         _cl_args.time = [parse_interval(intstr, tz=session.config['TIMEZONE'])
                          for intstr in _cl_args.time]
 
@@ -568,6 +567,13 @@ def retro(args):
     slot = frontend.get_workslot()
     if args.done:
         slot.task.done = True
+    # TODO Pull this cascade out.
+    if slot.task not in session.tasks:
+        session.tasks.append(task)
+        if ('project' in task.__dict__
+                and task.project
+                and task.project not in session.projects):
+            session.projects.append(task.project)
     session.wslots.append(slot)
 
 

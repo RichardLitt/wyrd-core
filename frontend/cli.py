@@ -91,19 +91,30 @@ class Cli(object):
                     task = str2task[taskname]
             if task is None:
                 # Create a new task, asking for optional details.
-                project = Cli.get_project(
-                    prompt="What project does it belong to?")
-                task = Task(taskname, project)
-                if ask_details:
-                    print("Estimated time?")
-                    time = input("> ").strip()
-                    print("Deadline?")
-                    deadline = input("> ").strip()
-                    if time:
-                        task.time = parse_timedelta(time)
-                    if deadline:
-                        task.deadline = parse_datetime(
-                            deadline, tz=session.config['TIMEZONE'])
+                matching_tasks = None
+                if selection:
+                    matching_tasks = [task for task in selection
+                                      if task.name == taskname]
+                if matching_tasks:
+                    if len(matching_tasks) > 1:
+                        print("There are multiple tasks of that name.  "
+                              "I am going to choose the first one.")
+                        # FIXME Let the user choose.
+                    task = matching_tasks[0]
+                else:
+                    project = Cli.get_project(
+                        prompt="What project does it belong to?")
+                    task = Task(taskname, project)
+                    if ask_details:
+                        print("Estimated time?")
+                        time = input("> ").strip()
+                        print("Deadline?")
+                        deadline = input("> ").strip()
+                        if time:
+                            task.time = parse_timedelta(time)
+                        if deadline:
+                            task.deadline = parse_datetime(
+                                deadline, tz=session.config['TIMEZONE'])
         return task
 
     @staticmethod
