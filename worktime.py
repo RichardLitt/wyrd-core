@@ -82,7 +82,9 @@ class Interval(object):
         if tz is None:
             return self.includes(datetime.now())
         else:
-            return self.includes(datetime.now(tz))
+            # XXX This is a workaround, not a principled solution to DST.
+            now = datetime.now(tz)
+            return self.includes(now + now.dst())
 
 
 class WorkSlot(Interval, DBObject):

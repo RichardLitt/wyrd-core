@@ -568,13 +568,15 @@ def retro(args):
     if args.done:
         slot.task.done = True
     # TODO Pull this cascade out.
-    if slot.task not in session.tasks:
+    task = slot.task
+    if task not in session.tasks:
         session.tasks.append(task)
         if ('project' in task.__dict__
                 and task.project
                 and task.project not in session.projects):
             session.projects.append(task.project)
     session.wslots.append(slot)
+    return 0
 
 
 def status(args):

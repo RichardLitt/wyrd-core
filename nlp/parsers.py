@@ -44,7 +44,7 @@ _timedelta_rx = re.compile((r'\W*?(?:({flt})\s*d(?:ays?\W+)?\W*?)?'
 ### caller will not know what specific signature should there be for the
 ### particular type.
 def parse_datetime(dtstr, tz=None, exact=False, orig_val=None, **kwargs):
-    """ Parses a string into a datetime object.
+    """Parses a string into a datetime object.
 
     Currently merely interprets the string as a timedelta, and adds it to now.
 
@@ -97,7 +97,10 @@ def parse_datetime(dtstr, tz=None, exact=False, orig_val=None, **kwargs):
         except ValueError:
             pass
 
-    # Try interpret the string as a timedelta and add to # datetime.now().
+    # TODO Match regexes such as "(.*) ago", "before (.*)", "in (.*)", "after
+    # (.*)" etc.
+
+    # Try interpret the string as a timedelta and add to datetime.now().
     if exact_dt is None:
         if tz is None:
             tz = wyrdin.session.config['TIMEZONE']
@@ -113,6 +116,7 @@ def parse_datetime(dtstr, tz=None, exact=False, orig_val=None, **kwargs):
             exact_dt = exact_dt.replace(tzinfo=tz)
         elif (orig_val is not None and orig_val.tzinfo is not None):
             exact_dt = exact_dt.replace(tzinfo=orig_val.tzinfo)
+
     # Round out microseconds (that's part of NLP) unless asked to return the
     # exact datetime.
     return exact_dt if exact else exact_dt.replace(microsecond=0)
