@@ -9,6 +9,7 @@ https://github.com/WyrdIn
 
 """
 # Prepare the environment as needed.
+from collections import defaultdict
 import sys
 import os.path
 # Make sure the libs provided with this package are visible.
@@ -591,6 +592,8 @@ def status(args):
     else:
         filter_open = lambda _: True
     # Select work slots matching the selection criteria..
+    # FIXME Do not only look at which slots intersect with the time interval
+    # specified, but also crop them to that interval.
     slots = [slot for slot in session.wslots \
              if filter_time(slot) and filter_open(slot)]
 
@@ -612,6 +615,8 @@ def status(args):
 
         # Print the tasks.
         task_totals = dict()
+        proj_totals = defaultdict(lambda: timedelta())
+        print_projects = False
         for task, task_slots in tasks_and_slots:
             # Expected case: only working once on the task in parallel:
             if len(task_slots) == 1:
@@ -619,6 +624,9 @@ def status(args):
                 start = task_slots[0].start
                 time_spent = end + end.dst() - start - start.dst()
                 task_totals[task] = time_spent
+                proj = task.project or None
+                print_projects |= proj in proj_totals
+                proj_totals[proj] += time_spent
                 start_str = start.strftime(
                     session.config['TIME_FORMAT_USER'])
                 end_str = end.strftime(
@@ -647,6 +655,9 @@ def status(args):
                           .format(start=start_str, end=end_str, task=task.name,
                                   time=time_spent_str))
                 task_totals[task] = task_total
+                proj = task.project or None
+                print_projects |= proj in proj_totals
+                proj_totals[proj] += time_spent
 
         # Print task totals.
         if any(len(slots) > 1 for slots in task2slot.values()):
@@ -656,6 +667,16 @@ def status(args):
             for task, task_total in task_totals_sd:
                 print("\t{time: >18}: {task}".format(
                     task=task.name, time=format_timedelta(task_total)))
+
+        # Print project totals.
+        if print_projects:
+            proj_totals_sd = sorted(proj_totals.items(),
+                                    key=lambda tup: -tup[1])
+            print("\nProject totals:")
+            for proj, proj_total in proj_totals_sd:
+                print("\t{time: >18}: {proj}".format(
+                    proj=proj if proj is not None else 'other',
+                    time=format_timedelta(proj_total)))
     return 0
 
 

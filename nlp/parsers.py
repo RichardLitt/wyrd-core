@@ -72,7 +72,8 @@ def parse_datetime(dtstr, tz=None, exact=False, orig_val=None, **kwargs):
                             r"world(?:\s+(?:20|')12)?$"),
                  datetime(year=2012, month=12, day=21,
                           hour=11, minute=11, tzinfo=timezone.utc))]
-    lower = dtstr.lower().strip()
+    dtstr = dtstr.strip()
+    lower = dtstr.lower()
     for keyword, dt in keywords:
         if keyword.match(lower):
             ### So, above - exact_dt = None - does all of the NLP, but
@@ -94,6 +95,9 @@ def parse_datetime(dtstr, tz=None, exact=False, orig_val=None, **kwargs):
         try:
             exact_dt = datetime.strptime(
                 dtstr, wyrdin.session.config['TIME_FORMAT_USER'])
+            # FIXME Check that year is not specified as part of
+            # wyrdin.session.config['TIME_FORMAT_USER']
+            exact_dt = exact_dt.replace(year=datetime.now().year)
         except ValueError:
             pass
 
@@ -183,13 +187,13 @@ def parse_interval(ivalstr, tz=None, exact=False, **kwargs):
     now = datetime.now(tz)
     # Try to use some keywords.
     keywords = {'today': (daystart(now, tz), dayend(now, tz))}
-    ivalstr = ivalstr.strip().lower()
-    if ivalstr in keywords:
-        start, end = keywords[ivalstr]
+    ivalstr_l = ivalstr.strip().lower()
+    if ivalstr_l in keywords:
+        start, end = keywords[ivalstr_l]
         return Interval(start, end)
 
     # Match some more patterns.
-    if ivalstr.startswith('since'):
+    if ivalstr_l.startswith('since'):
         start_str = ivalstr[5:].strip()
         return Interval(parse_datetime(start_str, tz=tz, exact=exact), now)
 
