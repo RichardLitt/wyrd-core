@@ -1,7 +1,7 @@
 wyrd-core
 =========
 
-The core part of the program
+This version adds features of json internet data handler to backend. It's based on Python3.1 branch which is the core part of the program
 
 ## Installation
 
@@ -13,6 +13,7 @@ However, it has a few prerequisites in order to run:
 	* pytz (http://pytz.sourceforge.net/)
 	* lxml (http://lxml.de)
 	* (argparse; this one should be part of the python distribution)
+	* standard python json module library
 
 
 ## Files
