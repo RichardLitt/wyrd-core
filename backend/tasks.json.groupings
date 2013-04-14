@@ -1,0 +1,35 @@
+{
+	"wyrdinData": {
+		"tasks": {
+			"task": [
+				{"done":"0", "id":"0", "project":"WyrdIn", "time":"0 d, 36000 s", "label": "implement basic functionality"}
+				{"done":"0", "id":"3", "project":"Pralinka", "label": "napsat sémantiku pro 4-2"}
+				{"done":"1", "id":"4", "project":"test", "získat adresu Elizy"}
+				{"done":"0", "id":"5", "project":"WyrdIn", "time":"0 d, 21600 s", "label": "run WyrdIn indefinitely"}
+				{"done":"1", "id":"6", "time":"0 d, 600 s", "deadline":"2012-12-27 22:42:27", "label": "dobít si kredit"}
+				{"done":"0", "id":"7", "time":"0 d, 2460 s", "deadline":"2012-12-29 04:02:27", "label": "obnovit systém souborů na korzárovi"}
+				{"done":"0", "id":"8", "project":"WyrdIn", "time":"0 d, 7200 s", "label": "implement notifications for deadlines"}
+				{"done":"0", "id":"9", "project":"WyrdIn", "time":"0 d, 1800 s", "label": "enable manipulating task prerequisites"}
+				{"done":"1", "id":"10", "project":"WyrdIn", "time":"0 d, 900 s", "label": "enable first start of WyrdIn (create the tasks file etc.)"}
+				{"done":"1", "id":"11", "project":"Silvestr", "time":"0 d, 300 s", "deadline":"2012-12-28 23:47:48", "label": "napiš Jardovi, kdy přijedeme na Silvestra"}
+				{"done":"0", "id":"12", "time":"0 d, 3000 s", "label": "vyvěs na Picasu fotky z Thajska a Indie"}
+				{"done":"0", "id":"13", "project":"doma", "time":"0 d, 900 s", "label": "Je dobrý nápad teď zasadit tulipány z komory?"}
+				{"done":"0", "id":"14", "project":"Vystadial", "time":"0 d, 14400 s", "deadline":"2013-01-10 11:14:39", "label": "připrav si plán, jak vyvíjet sémantický parser"}
+				{"done":"0", "id":"15", "project":"Vystadial", "time":"0 d, 9600 s", "label": "test ASR with non-speech events on the test set without non-speech events"}
+				{"done":"0", "id":"16", "project":"WyrdIn", "time":"0 d, 60 s", "label": "git push"}
+				]
+			}
+		"workslots": {
+			"workslot": [
+				{"id":"0", "task":"0", "start":"2012-12-11 22:39:45", "end":"2012-12-25 14:36:24"}
+				{"id":"1", "task":"3", "start":"2012-12-11 22:24:37", "end":"2012-12-11 22:39:05"}
+				{"id":"2", "task":"4", "start":"2012-12-11 23:21:54", "end":"2012-12-11 23:36:20"}
+				{"id":"3", "task":"5", "start":"2012-12-27 00:26:14", "end":"2012-12-27 13:21:11"}
+				{"id":"4", "task":"6", "start":"2012-12-27 11:02:16", "end":"2012-12-27 11:16:42"}
+				{"id":"5", "task":"7", "start":"2012-12-27 11:43:59", "end":"2012-12-27 13:19:18"}
+				{"id":"6", "task":"4", "start":"2012-12-20 14:04:32", "end":"2012-12-20 14:18:57"}
+				{"id":"7", "task":"10", "start":"2012-12-29 11:12:24", "end":"2012-12-29 12:12:26"}
+				]
+			}
+		}
+}
