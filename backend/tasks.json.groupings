@@ -1,7 +1,6 @@
 {
 	"wyrdinData": {
 		"tasks": {
-			"task": [
 				{"done":"0", "id":"0", "project":"WyrdIn", "time":"0 d, 36000 s", "label": "implement basic functionality"}
 				{"done":"0", "id":"3", "project":"Pralinka", "label": "napsat sémantiku pro 4-2"}
 				{"done":"1", "id":"4", "project":"test", "získat adresu Elizy"}
@@ -17,10 +16,8 @@
 				{"done":"0", "id":"14", "project":"Vystadial", "time":"0 d, 14400 s", "deadline":"2013-01-10 11:14:39", "label": "připrav si plán, jak vyvíjet sémantický parser"}
 				{"done":"0", "id":"15", "project":"Vystadial", "time":"0 d, 9600 s", "label": "test ASR with non-speech events on the test set without non-speech events"}
 				{"done":"0", "id":"16", "project":"WyrdIn", "time":"0 d, 60 s", "label": "git push"}
-				]
 			}
 		"workslots": {
-			"workslot": [
 				{"id":"0", "task":"0", "start":"2012-12-11 22:39:45", "end":"2012-12-25 14:36:24"}
 				{"id":"1", "task":"3", "start":"2012-12-11 22:24:37", "end":"2012-12-11 22:39:05"}
 				{"id":"2", "task":"4", "start":"2012-12-11 23:21:54", "end":"2012-12-11 23:36:20"}
@@ -29,7 +26,6 @@
 				{"id":"5", "task":"7", "start":"2012-12-27 11:43:59", "end":"2012-12-27 13:19:18"}
 				{"id":"6", "task":"4", "start":"2012-12-20 14:04:32", "end":"2012-12-20 14:18:57"}
 				{"id":"7", "task":"10", "start":"2012-12-29 11:12:24", "end":"2012-12-29 12:12:26"}
-				]
 			}
 		}
 }
