@@ -17,7 +17,8 @@ from shutil import copy2, move
 
 @contextmanager
 def open_backed_up(fname, mode='r', suffix='~'):
-    """A context manager for opening a file with a backup. If an exception is
+    """
+    A context manager for opening a file with a backup. If an exception is
     raised during manipulating the file, the file is restored from the backup
     before the exception is reraised.
 

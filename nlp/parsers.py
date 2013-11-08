@@ -28,7 +28,7 @@ import wyrdin
 ### number, and a timedelta specification.
 _dashes_rx = re.compile('-+')
 _float_subrx = r'(?:-\s*)?(?:\d+(?:\.\d+)?|\.\d+)'
-_timedelta_rx = re.compile((r'\W*?(?:({flt})\s*d(?:ays?\W+)?\W*?)?'
+_timedelta_rx = re.compile((r'\W*?(-?)(?:({flt})\s*d(?:ays?\W+)?\W*?)?'
                             r'(?:({flt})\s*h(?:(?:ou)?rs?\W+)?\W*?)?'
                             r'(?:({flt})\s*m(?:in(?:ute)?s?\W+)?\W*?)?'
                             r'(?:({flt})\s*s(?:ec(?:ond)?s?)?\W*?)?$')\
@@ -138,12 +138,13 @@ def parse_timedelta(timestr, **kwargs):
     if rx_match is not None:
         vals = []
         any_matched = False
+        sign = -1 if (rx_match.group(1) == '-') else 1
         # Convert matched groups for numbers into floats one by one.
-        for grp_str in rx_match.groups():
+        for grp_str in rx_match.groups()[1:]:
             if grp_str:
                 any_matched = True
                 try:
-                    val = float(grp_str)
+                    val = sign * float(grp_str)
                 except ValueError:
                     raise ValueError('Could not parse float from {grp}.'\
                                      .format(grp=grp_str))
@@ -186,7 +187,9 @@ def parse_interval(ivalstr, tz=None, exact=False, **kwargs):
     """
     now = datetime.now(tz)
     # Try to use some keywords.
-    keywords = {'today': (daystart(now, tz), dayend(now, tz))}
+    day_td = timedelta(days=1)
+    keywords = {'today': (daystart(now, tz), dayend(now, tz)),
+                'yesterday': (daystart(now, tz) - day_td, dayend(now, tz) - day_td)}
     ivalstr_l = ivalstr.strip().lower()
     if ivalstr_l in keywords:
         start, end = keywords[ivalstr_l]
