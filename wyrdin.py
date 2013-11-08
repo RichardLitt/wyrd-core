@@ -1,6 +1,8 @@
-#!/Library/Frameworks/Python.framework/Versions/3.1/Resources/Python.app/Contents/MacOS/Python
+#!/usr/bin/env python3
 #-*- coding: utf-8 -*-
 # This code is PEP8-compliant. See http://www.python.org/dev/peps/pep-0008/.
+#
+# TODO: use shlex to parse commands during the interactive session
 """
 
 Wyrd In: Time tracker and task manager
@@ -10,8 +12,10 @@ https://github.com/WyrdIn
 """
 # Prepare the environment as needed.
 from collections import defaultdict
-import sys
+from functools import reduce
+from operator import add
 import os.path
+import sys
 # Make sure the libs provided with this package are visible.
 libs_dirname = os.path.join(os.path.dirname(__file__), 'libs', 'python')
 if libs_dirname not in sys.path:
@@ -497,10 +501,15 @@ def _init_argparser(arger):
     return arger
 
 
-def _process_args(arger):
+def _process_args(arger, args=None):
     """ Processes the command line arguments.
     """
-    arger.parse_args(namespace=_cl_args)
+    global _cl_args
+    _cl_args = ClArgs()
+    if args is None:
+        arger.parse_args(namespace=_cl_args)
+    else:
+        arger.parse_args(args, namespace=_cl_args)
     _cl_args.arger = arger
 
 
@@ -522,7 +531,7 @@ def print_help(args):
 
 def begin(args):
     task = frontend.get_task()
-    start = datetime.now(session.config['TIMEZONE']) + args.adjust
+    start = datetime.now(session.config['TIMEZONE']) - args.adjust
     # TODO Make the Session object take care for accounting related to adding
     # work slots, tasks etc.
     session.wslots.append(WorkSlot(task=task, start=start))
@@ -536,7 +545,7 @@ def begin(args):
 
 
 def end(args):
-    end = datetime.now(session.config['TIMEZONE']) + args.adjust
+    end = datetime.now(session.config['TIMEZONE']) - args.adjust
     open_slots = session.find_open_slots()
     if not open_slots:
         print("You have not told me you have been doing something. Use "
@@ -618,6 +627,8 @@ def status(args):
         proj_totals = defaultdict(lambda: timedelta())
         print_projects = False
         for task, task_slots in tasks_and_slots:
+            # XXX This is not what the comment says. This, using the "-a" flag,
+            # gathers multiple slots for one task.
             # Expected case: only working once on the task in parallel:
             if len(task_slots) == 1:
                 end = task_slots[0].end or now
@@ -633,9 +644,15 @@ def status(args):
                     session.config['TIME_FORMAT_USER'])
                 time_spent_str = "({})".format(format_timedelta(time_spent))
                 try:
-                    print("\t{start: >13} --{end: >13} {time: >10}: {task}"
+                    if task.project:
+                        proj_str = " ({proj})".format(proj=task.project)
+                    else:
+                        proj_str = ""
+                    print(("\t{start: >13} --{end: >13} {time: >10}: "
+                           "{task}{proj}")
                           .format(start=start_str, end=end_str, task=task.name,
-                                  time=time_spent_str))
+                                  time=time_spent_str,
+                                  proj=proj_str))
                 except:
                     continue
             else:
@@ -651,13 +668,18 @@ def status(args):
                         session.config['TIME_FORMAT_USER'])
                     time_spent_str = "({})".format(
                         format_timedelta(time_spent))
-                    print("\t{start: >13} --{end: >13} {time: >10}: {task}"
+                    if task.project:
+                        proj_str = " ({proj})".format(proj=task.project)
+                    else:
+                        proj_str = ""
+                    print(("\t{start: >13} --{end: >13} {time: >10}: "
+                           "{task}{proj}")
                           .format(start=start_str, end=end_str, task=task.name,
-                                  time=time_spent_str))
+                                  time=time_spent_str, proj=proj_str))
                 task_totals[task] = task_total
                 proj = task.project or None
                 print_projects |= proj in proj_totals
-                proj_totals[proj] += time_spent
+                proj_totals[proj] += task_total
 
         # Print task totals.
         if any(len(slots) > 1 for slots in task2slot.values()):
@@ -665,8 +687,13 @@ def status(args):
                                     key=lambda tup: -tup[1])
             print("\nTask totals:")
             for task, task_total in task_totals_sd:
-                print("\t{time: >18}: {task}".format(
-                    task=task.name, time=format_timedelta(task_total)))
+                if task.project:
+                    proj_str = " ({proj})".format(proj=task.project)
+                else:
+                    proj_str = ""
+                print("\t{time: >18}: {task}{proj}".format(
+                    task=task.name, time=format_timedelta(task_total),
+                    proj=proj_str))
 
         # Print project totals.
         if print_projects:
@@ -677,6 +704,11 @@ def status(args):
                 print("\t{time: >18}: {proj}".format(
                     proj=proj if proj is not None else 'other',
                     time=format_timedelta(proj_total)))
+
+        # Print overall total.
+        time_total = reduce(add, proj_totals.values(), timedelta())
+        print("\nTotal time logged: {tot}".format(
+              tot=format_timedelta(time_total)))
     return 0
 
 
@@ -757,9 +789,11 @@ if __name__ == "__main__":
     # Read arguments and configuration, initiate the user session.
     arger = argparse.ArgumentParser()
     _init_argparser(arger)
-    _process_args(arger)
+    if len(sys.argv) > 1:
+        _process_args(arger)
     session.read_config(_cl_args)
-    _process_args_after_config(arger)
+    if len(sys.argv) > 1:
+        _process_args_after_config(arger)
 
     # Do imports that depend on a configured session.
     from task import Task
@@ -773,10 +807,47 @@ if __name__ == "__main__":
 
     from frontend.cli import Cli as frontend
     # Perform commands.
-    # FIXME: As seen, it does not work in a loop yet.
-    ret = _cl_args.func(_cl_args)
-    if ret == 0:
-        print("Done.")
+    # FIXME Decorate with Ctrl-D and Ctrl-C catching as used below.
+    if len(sys.argv) > 1:
+        ret = _cl_args.func(_cl_args)
+    else:
+        ret = None
+    try:
+        while True:
+            try:
+                if ret == 0:
+                    session.write_all()
+                    print("Done.")
+                # XXX Mostly inadequate a message.
+                # else:
+                    # print("Sorry, something went wrong.")
+
+                # Start the next cycle.
+                cmd = input("wyr> ").strip()
+
+                # TODO Provide a command for writing the data into the tasks file.
+                # FIXME Define this as just another command.
+                if (cmd.startswith("ZZ") or cmd.startswith("zz") or
+                        cmd.startswith("q")):
+                    break
+                try:
+                    _process_args(arger, args=cmd.split())
+                    _process_args_after_config(arger)
+                except KeyboardInterrupt as ex:  # Ctrl-C
+                    raise ex
+                except:
+                    print("Could not parse the arguments ({args})."
+                        .format(args=cmd))
+                else:
+                    ret = _cl_args.func(_cl_args)
+            except KeyboardInterrupt:   # Ctrl-C
+                print("\nCancelled.")
+                ret = -1
+    except EOFError:           # Ctrl-D
+        print("")
+    except:
+        print("An error occurred.")
+    print("Quitting wyrdin.")
 
     # Write data on exit.
     session.write_all()
