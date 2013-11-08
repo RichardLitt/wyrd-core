@@ -39,6 +39,6 @@ class DBObject(object):
         within the set of objects created in this WyrdIn application.
 
         """
-        raise NotImplementedError(('{cls} does not implement the '
-                                  "required method `short_repr'.").format(
-                                      cls=type(self).__name__))
+        msg = ("{cls} does not implement the required method `short_repr'."
+               .format(cls=type(self).__name__))
+        raise NotImplementedError(msg)

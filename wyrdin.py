@@ -386,6 +386,12 @@ class Session(object):
     def remove_workslot(self, slot):
         self.wslots.remove(slot)
 
+    def remove_group(self, group):
+        # TODO Check whether this is the desired behaviour (should the group
+        # and all its contents be removed recursively, or should just the group
+        # members be ungrouped?).
+        self.groups.remove(group)
+
 
 def _init_argparser(arger):
     """
@@ -497,6 +503,21 @@ def _init_argparser(arger):
                                               aliases=['r', 'rm', 'del'],
                                               help="Remove an existing task.")
     arger_tasks_r.set_defaults(func=remove_task)
+
+    # groups (of tasks or groups)
+    arger_groups = subargers.add_parser('groups',
+                                        aliases=['g'],
+                                        help="Manipulate task groups.")
+    group_subargers = arger_groups.add_subparsers()
+    arger_groups_a = group_subargers.add_parser('add',
+                                                aliases=['a'],
+                                                help="Add a new group.")
+    arger_groups_a.set_defaults(func=add_group)
+    arger_groups_r = group_subargers.add_parser(
+        'remove',
+        aliases=['r', 'rm', 'del'],
+        help="Remove an existing group.")
+    arger_groups_r.set_defaults(func=remove_group)
 
     return arger
 
@@ -613,7 +634,7 @@ def status(args):
         # FIXME Update the message, especially in case when called with --all.
         print("You have been working on the following tasks:")
         now = datetime.now(session.config['TIMEZONE'])
-        task2slot = group_by(slots, "task", single_attr=True)
+        task2slot = group_by(slots, "task")
         # Sort the tasks (somehow).
         tasks_and_slots = list()
         for task, task_slots in task2slot.items():
@@ -768,6 +789,37 @@ def remove_task(args):
     print("The task '{}' has been removed successfully.".format(task))
 
 
+# Group subcommands.
+# TODO Update listing tasks to a hierarchical listing.
+# TODO Update reference to the project to an entire branch in the task listing.
+def add_group(args):
+    """
+    Defines a new group of tasks or groups.
+
+    """
+    raise NotImplementedError()
+    print("Adding a group...")
+    group_type = frontend.get_group_type()
+    members = list()
+    while True:
+        member = frontend.get_group_member()
+        if member is None:
+            break
+        else:
+            members.append(member)
+    # TODO Store the group.
+    # TODO Message the user.
+
+
+def remove_group(args):
+    """Removes a group of tasks or groups."""
+    raise NotImplementedError()
+    print("Removing a group...")
+    group = frontend.get_group(session.groups)
+    session.remove_group(group)
+    print("The group '{}' has been removed successfully.".format(task))
+
+
 # The main program loop.
 if __name__ == "__main__":
     # Important imports.
@@ -837,7 +889,7 @@ if __name__ == "__main__":
                     raise ex
                 except:
                     print("Could not parse the arguments ({args})."
-                        .format(args=cmd))
+                          .format(args=cmd))
                 else:
                     ret = _cl_args.func(_cl_args)
             except KeyboardInterrupt:   # Ctrl-C

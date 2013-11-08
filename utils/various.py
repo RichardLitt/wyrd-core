@@ -47,16 +47,16 @@ def open_backed_up(fname, mode='r', suffix='~'):
     f.close()
 
 
-def group_by(objects, attrs, single_attr=False):
+def group_by(objects, attrs, flat):
     """Groups `objects' by the values of their attributes `attrs'.
 
     Returns a dictionary mapping from a tuple of attribute values to a list of
     objects with those attribute values.
 
     keyword arguments:
-        - single_attr: specifies that there is just one attribute to use as the
-                       key, and that the keys should be directly values of the
-                       attribute, rather than one-tuples
+        - flat: specifies that there is just one attribute to use as the key,
+                and that the keys should be directly values of the attribute,
+                rather than one-tuples
 
     """
     # Specifying one string shall be interpreted as the single attribute name,
@@ -64,7 +64,7 @@ def group_by(objects, attrs, single_attr=False):
     if isinstance(attrs, str):
         attrs = (attrs, )
     if single_attr and len(attrs) != 1:
-        raise ValueError("single_attr specified, but multiple attrs used " + \
+        raise ValueError("single_attr specified, but multiple attrs used "
                          "for indexing.")
     if single_attr:
         attr = attrs[0]
@@ -72,9 +72,9 @@ def group_by(objects, attrs, single_attr=False):
     groups = dict()
     for obj in objects:
         if single_attr:
-            key = obj.__dict__[attr]
+            key = getattr(obj, attr)
         else:
-            key = tuple(obj.__dict__[attr] for attr in attrs)
+            key = tuple(getattr(obj, attr) for attr in attrs)
         groups.setdefault(key, []).append(obj)
     return groups
 
