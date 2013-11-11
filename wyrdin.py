@@ -634,7 +634,7 @@ def status(args):
         # FIXME Update the message, especially in case when called with --all.
         print("You have been working on the following tasks:")
         now = datetime.now(session.config['TIMEZONE'])
-        task2slot = group_by(slots, "task")
+        task2slot = group_by(slots, "task", flat=True)
         # Sort the tasks (somehow).
         tasks_and_slots = list()
         for task, task_slots in task2slot.items():
